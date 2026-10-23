@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painter — paint, ink and lay out comics</title>
-<meta name="description" content="Painter is a free, open-source painting app for illustration and comics, written in Rust with a GPU canvas. Windows, macOS, Linux, Android and iPad.">
+<meta name="description" content="Painter is a free, open-source painting app for illustration and comics, written in Rust with a GPU canvas. Draw together in shared sessions, letter with text and balloons, print in CMYK. Windows, macOS, Linux, Android and iPad.">
 <meta property="og:title" content="Painter — paint, ink and lay out comics">
-<meta property="og:description" content="A free, open-source painting app for illustration and comics: brushes from Clip Studio, Photoshop, Krita and MyPaint, comic panels, rulers, 3D references.">
-<meta property="og:image" content="https://cr0ma-gh.github.io/painter/assets/screenshot-painting.png">
-<meta name="theme-color" content="#120d26">
+<meta property="og:description" content="A free, open-source painting app for illustration and comics: shared drawing sessions, text and balloons, CMYK through Little CMS, brushes from Clip Studio, Photoshop, Krita and MyPaint, comic panels, 3D references.">
+<meta property="og:image" content="https://cr0ma-gh.github.io/painter/assets/shot-hero.png">
+<meta name="theme-color" content="#262626">
 <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
 <link rel="icon" type="image/png" href="assets/icon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -16,19 +16,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* The app's own dark theme: neutral panels, a steel-blue accent, the orange
+     of its transform handles, and the cream of the ensō icon. */
   :root {
-    --bg: #0d0a1c;
-    --bg-2: #141030;
-    --card: rgba(255, 255, 255, 0.045);
-    --card-line: rgba(255, 255, 255, 0.09);
-    --text: #f3effa;
-    --dim: #a9a2c4;
-    --indigo: #3a2f9a;
-    --violet: #7b5cff;
-    --teal: #1fa2b0;
-    --coral: #f0716a;
-    --amber: #ffc448;
-    --radius: 18px;
+    --bg: #1f1f1f;          /* darker than the app's backdrop, for depth */
+    --backdrop: #262626;    /* app: backdrop */
+    --panel: #303030;       /* app: panels */
+    --title: #3a3a3a;       /* app: title bars */
+    --well: #242424;        /* app: wells */
+    --line: #1e1e1e;        /* app: lines */
+    --edge: rgba(255, 255, 255, 0.07);
+    --text: #e4e4e4;        /* app: text, a touch brighter for reading */
+    --dim: #a2a2a2;         /* app: dim text */
+    --accent: #6284c4;      /* app: accent */
+    --selected: #4a5a78;    /* app: selection */
+    --orange: #ffaa28;      /* app: handles */
+    --cream: #f6f1e7;       /* the icon's paper */
+    --radius: 10px;
     --max: 1180px;
   }
   * { box-sizing: border-box; }
@@ -43,194 +47,185 @@
   }
   a { color: inherit; }
   img { max-width: 100%; height: auto; display: block; }
+  code { font-size: .92em; padding: 1px 5px; border-radius: 4px; background: var(--well); border: 1px solid var(--line); }
   .wrap { width: min(var(--max), 100% - 32px); margin: 0 auto; }
 
-  /* Background glows */
+  /* A faint glow of the accent behind the top of the page. */
   .glow { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
-  .glow span { position: absolute; border-radius: 50%; filter: blur(110px); opacity: 0.45; }
-  .glow .a { width: 620px; height: 620px; background: var(--indigo); top: -200px; left: -160px; }
-  .glow .b { width: 520px; height: 520px; background: var(--teal); top: 30%; right: -220px; opacity: 0.25; }
-  .glow .c { width: 480px; height: 480px; background: var(--coral); bottom: -260px; left: 25%; opacity: 0.22; }
+  .glow span { position: absolute; border-radius: 50%; filter: blur(120px); }
+  .glow .a { width: 700px; height: 520px; background: var(--accent); top: -260px; left: 50%; transform: translateX(-50%); opacity: 0.22; }
+  .glow .b { width: 420px; height: 420px; background: var(--orange); bottom: -260px; right: -120px; opacity: 0.08; }
 
-  /* Nav */
+  /* Nav, like the app's menu bar */
   nav {
     position: sticky; top: 0; z-index: 10;
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    background: rgba(13, 10, 28, 0.6);
-    border-bottom: 1px solid var(--card-line);
+    background: rgba(38, 38, 38, 0.88);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 1px 0 var(--edge);
   }
-  nav .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
+  nav .wrap { display: flex; align-items: center; gap: 28px; height: 58px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; text-decoration: none; }
-  .brand img { width: 30px; height: 30px; }
-  nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; }
-  nav .links a { text-decoration: none; color: var(--dim); transition: color .2s; }
-  nav .links a:hover { color: var(--text); }
-  @media (max-width: 760px) { nav .links a.hide-sm { display: none; } nav .wrap { gap: 14px; } nav .links { gap: 14px; } }
+  .brand img { width: 28px; height: 28px; border-radius: 7px; }
+  nav .links { display: flex; gap: 6px; margin-left: auto; font-size: 14px; }
+  nav .links a { text-decoration: none; color: var(--dim); padding: 6px 10px; border-radius: 6px; white-space: nowrap; transition: color .15s, background .15s; }
+  nav .links a:hover { color: var(--text); background: var(--title); }
+  @media (max-width: 760px) { nav .links a.hide-sm { display: none; } nav .wrap { gap: 10px; } }
+  @media (max-width: 420px) { nav .links { gap: 0; } nav .links a { padding: 6px 6px; font-size: 13px; } .brand { font-size: 16px; } }
 
   /* Buttons */
   .btn {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 13px 22px; border-radius: 999px;
+    padding: 12px 20px; border-radius: 8px;
     font-weight: 600; font-size: 15px; text-decoration: none;
-    border: 1px solid var(--card-line); background: var(--card);
-    transition: transform .15s, box-shadow .2s, background .2s;
+    border: 1px solid var(--edge); background: var(--title);
+    transition: transform .15s, background .15s, box-shadow .2s;
   }
-  .btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.08); }
+  .btn:hover { transform: translateY(-1px); background: #444; }
   .btn.primary {
-    border: 0; color: #1a1030;
-    background: linear-gradient(120deg, var(--amber), var(--coral));
-    box-shadow: 0 10px 34px -10px rgba(240, 113, 106, 0.8);
+    color: #fff; border-color: transparent;
+    background: var(--accent);
+    box-shadow: 0 10px 30px -12px rgba(98, 132, 196, 0.9);
   }
-  .btn.primary:hover { box-shadow: 0 16px 40px -10px rgba(240, 113, 106, 0.95); }
+  .btn.primary:hover { background: #7091cc; }
   .btn svg { width: 18px; height: 18px; flex: none; }
-  .btn small { font-weight: 500; opacity: .75; }
 
   /* Hero */
-  .hero { position: relative; padding: 88px 0 40px; text-align: center; }
+  .hero { position: relative; padding: 84px 0 40px; text-align: center; }
   .hero .eyebrow {
-    display: inline-flex; gap: 8px; align-items: center;
+    display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center;
     padding: 6px 14px; border-radius: 999px; font-size: 13px; color: var(--dim);
-    border: 1px solid var(--card-line); background: var(--card);
+    border: 1px solid var(--edge); background: var(--panel); text-decoration: none;
   }
-  .hero .eyebrow b { color: var(--amber); font-weight: 600; }
+  .hero .eyebrow b { color: var(--orange); font-weight: 600; }
   h1 {
     font-family: "Fraunces", Georgia, serif; font-weight: 700;
-    font-size: clamp(42px, 7vw, 84px); line-height: 1.02; letter-spacing: -0.02em;
+    font-size: clamp(42px, 7vw, 82px); line-height: 1.02; letter-spacing: -0.02em;
     margin: 24px auto 18px; max-width: 900px;
   }
-  h1 em {
-    font-style: normal;
-    background: linear-gradient(100deg, var(--amber) 10%, var(--coral) 45%, var(--violet) 90%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  .hero p.lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--dim); max-width: 680px; margin: 0 auto 32px; }
-  .hero .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  h1 em { font-style: normal; color: var(--cream); text-decoration: underline; text-decoration-color: var(--orange); text-decoration-thickness: .07em; text-underline-offset: .12em; }
+  .hero p.lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--dim); max-width: 700px; margin: 0 auto 30px; }
+  .hero .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .hero .platforms { margin-top: 18px; font-size: 13px; color: var(--dim); }
   .hero .platforms a { color: var(--dim); }
 
-  .showcase { position: relative; margin: 64px auto 0; max-width: 1100px; perspective: 1800px; }
-  .showcase::before {
-    content: ""; position: absolute; inset: 8% 6% -6%;
-    background: url(assets/artwork.jpg) center/cover;
-    filter: blur(60px) saturate(1.3); opacity: .75; border-radius: 40px; z-index: -1;
-  }
+  /* Screenshots sit in an app-like window frame. */
   .window {
-    border-radius: 14px; overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.14);
-    box-shadow: 0 40px 120px -30px rgba(0,0,0,0.9), 0 0 0 1px rgba(0,0,0,0.4);
-    transform: rotateX(8deg) scale(.98); transform-origin: 50% 0;
-    transition: transform .8s cubic-bezier(.2,.7,.2,1);
-    background: #1e1e1e;
+    border-radius: 10px; overflow: hidden; background: var(--backdrop);
+    border: 1px solid #111;
+    box-shadow: 0 40px 100px -30px rgba(0,0,0,0.9), 0 0 0 1px var(--edge);
   }
-  .showcase.in .window { transform: rotateX(0) scale(1); }
+  .showcase { margin: 60px auto 0; max-width: 1120px; perspective: 1800px; }
+  .showcase .window { transform: rotateX(7deg) scale(.98); transform-origin: 50% 0; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+  .showcase.in .window { transform: none; }
 
   /* Sections */
-  section { padding: 96px 0; }
-  .section-head { text-align: center; max-width: 720px; margin: 0 auto 52px; }
-  .section-head .kicker { color: var(--amber); font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
-  h2 { font-family: "Fraunces", Georgia, serif; font-size: clamp(32px, 4.6vw, 52px); line-height: 1.08; margin: 10px 0 14px; letter-spacing: -0.01em; }
+  section { padding: 92px 0; }
+  section.alt { background: linear-gradient(180deg, transparent, rgba(48,48,48,.35) 12%, rgba(48,48,48,.35) 88%, transparent); }
+  .section-head { text-align: center; max-width: 740px; margin: 0 auto 48px; }
+  .kicker { color: var(--accent); font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+  h2 { font-family: "Fraunces", Georgia, serif; font-size: clamp(32px, 4.6vw, 50px); line-height: 1.08; margin: 10px 0 14px; letter-spacing: -0.01em; }
   .section-head p { color: var(--dim); margin: 0; font-size: 17px; }
 
-  /* Features */
-  .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
-  .feature {
-    padding: 26px; border-radius: var(--radius);
-    background: var(--card); border: 1px solid var(--card-line);
-    transition: transform .2s, border-color .2s, background .2s;
+  /* Cards, like the app's panels: a title strip, then the body. */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+  .card {
+    position: relative; border-radius: var(--radius); overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 0 0 1px var(--edge) inset;
+    transition: transform .2s, box-shadow .2s;
   }
-  .feature:hover { transform: translateY(-4px); border-color: rgba(255,196,72,0.35); background: rgba(255,255,255,0.06); }
-  .feature .ico {
-    width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 16px;
-    background: linear-gradient(135deg, rgba(123,92,255,.35), rgba(31,162,176,.35));
-    border: 1px solid rgba(255,255,255,0.12);
-  }
-  .feature .ico svg { width: 22px; height: 22px; stroke: var(--text); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .feature h3 { margin: 0 0 8px; font-size: 18px; }
-  .feature p { margin: 0; color: var(--dim); font-size: 15px; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(98,132,196,.55) inset, 0 18px 40px -24px rgba(0,0,0,.9); }
+  .card .bar { display: flex; align-items: center; gap: 9px; padding: 8px 14px; background: var(--title); border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text); }
+  .card .bar svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .card .body { padding: 14px 16px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--dim); font-size: 14.5px; }
+  .badge { margin-left: auto; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #1d1d1d; background: var(--orange); padding: 2px 8px; border-radius: 999px; }
+  .card.big { grid-column: span 2; }
+  @media (max-width: 700px) { .card.big { grid-column: auto; } }
 
   /* Gallery */
-  .gallery { display: grid; gap: 28px; }
-  .shot { display: grid; grid-template-columns: 1.6fr 1fr; gap: 36px; align-items: center; }
-  .shot:nth-child(even) { grid-template-columns: 1fr 1.6fr; }
-  .shot:nth-child(even) .frame { order: 2; }
-  .frame { border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 30px 80px -30px rgba(0,0,0,.9); cursor: zoom-in; }
-  .frame img { transition: transform .5s; }
-  .frame:hover img { transform: scale(1.02); }
-  .shot h3 { font-family: "Fraunces", Georgia, serif; font-size: 30px; margin: 0 0 12px; line-height: 1.15; }
+  .gallery { display: grid; gap: 64px; }
+  .shot { display: grid; grid-template-columns: 1.65fr 1fr; gap: 40px; align-items: center; }
+  .shot:nth-child(even) { grid-template-columns: 1fr 1.65fr; }
+  .shot:nth-child(even) .window { order: 2; }
+  .shot .window { cursor: zoom-in; }
+  .shot .window img { transition: transform .5s; }
+  .shot .window:hover img { transform: scale(1.015); }
+  .shot h3 { font-family: "Fraunces", Georgia, serif; font-size: 29px; margin: 6px 0 12px; line-height: 1.15; }
   .shot p { color: var(--dim); margin: 0 0 10px; }
-  @media (max-width: 860px) { .shot, .shot:nth-child(even) { grid-template-columns: 1fr; } .shot:nth-child(even) .frame { order: 0; } }
+  .shot .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--orange); }
+  @media (max-width: 860px) { .shot, .shot:nth-child(even) { grid-template-columns: 1fr; } .shot:nth-child(even) .window { order: 0; } }
 
   /* Downloads */
-  .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
   .dl {
-    position: relative; display: flex; flex-direction: column; gap: 10px;
-    padding: 26px 22px; border-radius: var(--radius); text-decoration: none;
-    background: var(--card); border: 1px solid var(--card-line);
-    transition: transform .2s, border-color .2s, box-shadow .2s;
+    position: relative; display: flex; flex-direction: column; gap: 8px;
+    padding: 22px 20px; border-radius: var(--radius); text-decoration: none;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: 0 0 0 1px var(--edge) inset;
+    transition: transform .2s, box-shadow .2s;
   }
-  .dl:hover { transform: translateY(-4px); border-color: rgba(255,196,72,0.45); box-shadow: 0 20px 50px -24px rgba(255,196,72,0.45); }
-  .dl.mine { border-color: rgba(255,196,72,0.6); }
+  .dl:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(98,132,196,.6) inset, 0 20px 44px -26px rgba(98,132,196,.7); }
+  .dl.mine { box-shadow: 0 0 0 1px var(--accent) inset; }
   .dl.mine::after {
     content: "Your system"; position: absolute; top: 14px; right: 14px;
-    font-size: 11px; font-weight: 600; color: #1a1030; background: var(--amber);
-    padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; color: #1d1d1d; background: var(--orange);
+    padding: 2px 9px; border-radius: 999px;
   }
-  .dl svg { width: 34px; height: 34px; fill: var(--text); }
+  .dl svg { width: 32px; height: 32px; fill: var(--text); }
   .dl h3 { margin: 4px 0 0; font-size: 19px; }
   .dl .file { font-size: 13px; color: var(--dim); }
   .dl .note { font-size: 13px; color: var(--dim); margin-top: auto; }
-  .dl .go { font-size: 14px; font-weight: 600; color: var(--amber); }
-  .dl-foot { text-align: center; margin-top: 24px; color: var(--dim); font-size: 14px; }
+  .dl .go { font-size: 14px; font-weight: 600; color: var(--accent); }
+  .dl-foot { text-align: center; margin-top: 22px; color: var(--dim); font-size: 14px; }
 
   /* iPad guide */
-  .guide { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+  .guide { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
   @media (max-width: 900px) { .guide { grid-template-columns: 1fr; } }
-  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
   .steps li {
-    counter-increment: step; position: relative; padding: 18px 18px 18px 66px;
-    border-radius: 14px; background: var(--card); border: 1px solid var(--card-line);
+    counter-increment: step; position: relative; padding: 16px 16px 16px 62px;
+    border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); box-shadow: 0 0 0 1px var(--edge) inset;
   }
   .steps li::before {
-    content: counter(step); position: absolute; left: 18px; top: 16px;
-    width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
-    font-weight: 700; color: #1a1030; background: linear-gradient(135deg, var(--amber), var(--coral));
+    content: counter(step); position: absolute; left: 16px; top: 15px;
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; color: #fff; background: var(--accent);
   }
   .steps b { display: block; margin-bottom: 2px; }
   .steps span { color: var(--dim); font-size: 15px; }
-  .callout {
-    padding: 24px; border-radius: var(--radius);
-    background: linear-gradient(160deg, rgba(123,92,255,0.18), rgba(31,162,176,0.12));
-    border: 1px solid rgba(255,255,255,0.12);
-  }
-  .callout h3 { margin: 0 0 10px; font-size: 18px; }
-  .callout p, .callout li { color: var(--dim); font-size: 15px; }
-  .callout ul { padding-left: 20px; margin: 8px 0 0; }
-  .callout + .callout { margin-top: 16px; }
-  kbd { font: 600 13px "Inter", sans-serif; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); }
+  .callout { border-radius: var(--radius); overflow: hidden; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 0 0 1px var(--edge) inset; }
+  .callout h3 { margin: 0; padding: 9px 16px; font-size: 14px; background: var(--title); border-bottom: 1px solid var(--line); }
+  .callout ul { margin: 0; padding: 14px 18px 16px 34px; }
+  .callout li { color: var(--dim); font-size: 15px; }
+  .callout + .callout { margin-top: 14px; }
+  kbd { font: 600 13px "Inter", sans-serif; padding: 1px 7px; border-radius: 5px; background: var(--title); border: 1px solid #4a4a4a; }
 
   /* Footer */
-  footer { padding: 56px 0 64px; border-top: 1px solid var(--card-line); color: var(--dim); font-size: 14px; }
+  footer { padding: 48px 0 60px; border-top: 1px solid var(--line); box-shadow: 0 -1px 0 var(--edge); color: var(--dim); font-size: 14px; background: var(--backdrop); }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; }
 
   /* Lightbox */
-  .lightbox { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; background: rgba(5,4,12,.88); padding: 24px; cursor: zoom-out; }
+  .lightbox { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; background: rgba(10,10,10,.9); padding: 24px; cursor: zoom-out; }
   .lightbox.open { display: grid; }
-  .lightbox img { max-height: 92vh; border-radius: 10px; box-shadow: 0 40px 120px rgba(0,0,0,.8); }
+  .lightbox img { max-height: 92vh; border-radius: 8px; box-shadow: 0 40px 120px rgba(0,0,0,.8); }
 
   /* Reveal on scroll */
-  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s, transform .7s; }
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s, transform .6s; }
   .reveal.in { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .reveal, .window { transition: none; transform: none; opacity: 1; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .reveal, .showcase .window { transition: none; transform: none; opacity: 1; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
-<div class="glow"><span class="a"></span><span class="b"></span><span class="c"></span></div>
+<div class="glow"><span class="a"></span><span class="b"></span></div>
 
 <nav>
   <div class="wrap">
     <a class="brand" href="#top"><img src="assets/icon.svg" alt="">Painter</a>
     <div class="links">
-      <a href="#features">Features</a>
+      <a href="#new">What's new</a>
+      <a class="hide-sm" href="#features">Features</a>
       <a class="hide-sm" href="#screenshots">Screenshots</a>
       <a href="#download">Download</a>
       <a class="hide-sm" href="#ipad">iPad</a>
@@ -241,9 +236,9 @@
 
 <header class="hero" id="top">
   <div class="wrap">
-    <span class="eyebrow"><b>Free &amp; open source</b> · Rust · GPU canvas</span>
+    <a class="eyebrow" href="#new"><b>New</b> Shared sessions · Text &amp; balloons · CMYK with Little CMS →</a>
     <h1>Paint, ink and lay out <em>comics</em>.</h1>
-    <p class="lead">Painter is a painting app for illustration and comics, inspired by Clip Studio Paint. Bring your brushes from Clip Studio, Photoshop, Krita and MyPaint, draw with a pen or the Apple Pencil, and work on every platform you own.</p>
+    <p class="lead">Painter is a free painting app for illustration and comics, inspired by Clip Studio Paint and Photoshop. Bring your brushes, draw with a pen or the Apple Pencil, letter your pages, draw together with friends, and send CMYK files to print — on every platform you own.</p>
     <div class="cta">
       <a class="btn primary" id="hero-download" href="#download">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>
@@ -254,12 +249,68 @@
         Source on GitHub
       </a>
     </div>
-    <div class="platforms">Windows · macOS · Linux · Android · iPad — <a href="#download">all downloads</a></div>
+    <div class="platforms">Windows · macOS · Linux · Android · iPad — free, no account, no telemetry — <a href="#download">all downloads</a></div>
     <div class="showcase" id="showcase">
-      <div class="window"><img src="assets/screenshot-painting.png" alt="Painter with a layered sunset illustration: tools on the left, colour wheel and layers on the right" width="1936" height="1018"></div>
+      <div class="window"><img src="assets/shot-hero.png" alt="Painter with a sunset illustration: grouped tools on the left, compact brush settings, colour panels and Layers / Channels / History tabs on the right" width="1920" height="1009"></div>
     </div>
   </div>
 </header>
+
+<section id="new" class="alt">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="kicker">What's new</div>
+      <h2>Draw together, letter, print</h2>
+      <p>The latest releases bring Photoshop's and Clip Studio's tools you asked for, and a few nobody else has for free.</p>
+    </div>
+    <div class="grid">
+      <div class="card big reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M13 20c.3-2.4 2-4 4-4s3.6 1.6 4 4"/></svg>Shared sessions<span class="badge">New</span></div>
+        <div class="body"><h3>Draw together, like Drawpile — in the app</h3><p>Host the open document and friends join with your address, on any platform. Strokes merge so two people painting in one spot both keep their paint; layers, texts and filters follow along. See everyone's pointer with their name, chat, and undo only your own work.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M4 6h16M12 6v13M8 19h8"/></svg>Text &amp; balloons<span class="badge">New</span></div>
+        <div class="body"><h3>Letter your pages</h3><p>Any font on your computer, vertical text for manga, outlines, and balloons — speech, thought, shout — with a tail you aim. Japanese and Chinese come from a fallback font when yours lacks them.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="9" cy="10" r="5"/><circle cx="15" cy="10" r="5"/><circle cx="12" cy="15" r="5"/></svg>CMYK<span class="badge">New</span></div>
+        <div class="body"><h3>Print-ready, through Little CMS</h3><p>Pick your press profile (FOGRA39, SWOP, Japan Color…), intent and black point compensation. Colours stay printable, the panel shows C M Y K and warns when a colour won't print, and PSDs export as real CMYK files.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2.5"/><circle cx="18" cy="12" r="3"/><circle cx="6" cy="18" r="2.5"/><circle cx="12" cy="18" r="3"/></svg>Colour modes &amp; profiles<span class="badge">New</span></div>
+        <div class="body"><h3>Grayscale, bitmap, halftone</h3><p>RGB, CMYK, Grayscale and Bitmap with threshold, dither or a halftone screen at any angle. sRGB, Display P3 and Adobe RGB profiles embedded in PNG and PSD.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M6 3h4v3c0 1 2 1.5 2 3v2H4V9c0-1.5 2-2 2-3z"/><rect x="3" y="13" width="10" height="3" rx="1"/><path d="M15 20a5 5 0 1 0-1-6"/></svg>Stamps &amp; history brush<span class="badge">New</span></div>
+        <div class="body"><h3>Clone, pattern, paint the past</h3><p>Clone stamp, pattern stamp with your own patterns, and a history brush that paints back any earlier state — all with your brush's tip and pressure.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M4 17C2 13 4 5 11 4s9 4 8 9-7 6-9 5" stroke-dasharray="2 2"/></svg>Smart selections<span class="badge">New</span></div>
+        <div class="body"><h3>Magnetic lasso, object selection</h3><p>A lasso that snaps to outlines as you move, and a rectangle round something to select what stands out from the background.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5" fill="#e06666" stroke="none"/><circle cx="12" cy="12" r="2.5" fill="#5cb85c" stroke="none"/><circle cx="18" cy="12" r="2.5" fill="#5b8def" stroke="none"/></svg>Channels &amp; actions<span class="badge">New</span></div>
+        <div class="body"><h3>Photoshop's Channels and Actions</h3><p>View or paint red, green and blue apart, keep selections as channels in the project. Record the commands you run and play them back in one click.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5M13 4v5"/></svg>A more compact interface<span class="badge">New</span></div>
+        <div class="body"><h3>More room for the canvas</h3><p>Tool families share one button with a flyout, panels stack in named tabs, one-row brush settings and a slimmer Layers panel. A small clock and battery chip for full-screen work — hide it with a click.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Updates<span class="badge">New</span></div>
+        <div class="body"><h3>Updates itself</h3><p>Painter checks GitHub for a new version, verifies the download and restarts updated on Windows, macOS and Linux.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>Reset Settings<span class="badge">New</span></div>
+        <div class="body"><h3>Back to how it came</h3><p>Put back the interface, tool options, built-in brushes, colours or recent files — each on its own. Start with <code>--reset-settings</code> if a setting gets in the way.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="10" height="8" rx="1"/><circle cx="15" cy="15" r="6"/></svg>Shapes<span class="badge">New</span></div>
+        <div class="body"><h3>Rectangles, ellipses, polygons</h3><p>Drawn with your brush, filled, or both; rounded corners, squares and circles with Shift, from the centre with Alt.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section id="features">
   <div class="wrap">
@@ -268,57 +319,48 @@
       <h2>Everything a page needs, from sketch to export</h2>
       <p>A full painting toolkit with the comic tools that usually cost extra, on a canvas drawn by your GPU.</p>
     </div>
-    <div class="features">
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><path d="M14 4l6 6L9 21H3v-6z"/><path d="M12 6l6 6"/></svg></div>
-        <h3>Brushes you already own</h3>
-        <p>Imports Clip Studio <code>.sut</code>, Photoshop <code>.abr</code>, Krita <code>.kpp</code>/<code>.bundle</code>, MyPaint and GIMP brushes — and exports them back. Image tips, dual tips, textures, tilt, speed and pressure dynamics.</p>
+    <div class="grid">
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M14 4l6 6L9 21H3v-6z"/><path d="M12 6l6 6"/></svg>Brushes</div>
+        <div class="body"><h3>Brushes you already own</h3><p>Imports Clip Studio <code>.sut</code>, Photoshop <code>.abr</code>, Krita <code>.kpp</code>/<code>.bundle</code>, MyPaint and GIMP brushes — and exports them back. Image tips, dual tips, textures, blend modes, tilt, speed and pressure.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></div>
-        <h3>Layers like the pros</h3>
-        <p>Raster, vector, folders, paper, gradients and screentones, with 13 blend modes, masks, clipping, locks and draft layers. Multi-select, drag, group and change many at once.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>Layers</div>
+        <div class="body"><h3>Layers like the pros</h3><p>Raster, vector, text, folders, paper, gradients, screentones and file objects, with 13 blend modes, masks, clipping, locks and draft layers. Vector lines you can reshape point by point.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/></svg></div>
-        <h3>Comic pages</h3>
-        <p>Print presets from manga B5 to webtoon strips, bleed and gutters, panel templates and a frame tool. Each panel is a masked folder, so the art stays inside the border.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="10" rx="1"/><rect x="13" y="3" width="8" height="6" rx="1"/><rect x="13" y="11" width="8" height="10" rx="1"/><rect x="3" y="15" width="8" height="6" rx="1"/></svg>Comics</div>
+        <div class="body"><h3>Comic pages</h3><p>Print presets from manga B5 to webtoon strips, bleed and gutters, panel templates and a frame tool. Each panel is a masked folder, so the art stays inside the border.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 20L12 4l9 16"/><path d="M7.5 12h9"/></svg></div>
-        <h3>Rulers &amp; perspective</h3>
-        <p>Perspective rulers with 1–3 vanishing points, symmetry, parallel, radial and concentric rulers, and straight lines with Shift on every brush.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M3 20L12 4l9 16"/><path d="M7.5 12h9"/></svg>Rulers</div>
+        <div class="body"><h3>Rulers &amp; perspective</h3><p>Perspective rulers with 1–3 vanishing points, symmetry, parallel, radial and concentric rulers, smart shapes when you hold the pen still, and straight lines with Shift.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12m0 0l9-5M12 12L3 7"/></svg></div>
-        <h3>3D references, painted</h3>
-        <p>Drop in <code>.blend</code> or <code>.obj</code> models with Blender-style navigation, use their camera for perspective, and paint textures right on the model or on its UV map.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 22V12m0 0l9-5M12 12L3 7"/></svg>3D</div>
+        <div class="body"><h3>3D references, painted</h3><p>Drop in <code>.blend</code>, FBX, glTF or OBJ models, pose rigged characters with IK, use their camera for perspective, and paint textures on the model or its UV map.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 15l2 2 4-4"/></svg></div>
-        <h3>Opens your files</h3>
-        <p>Clip Studio <code>.clip</code>, Photoshop PSD, Krita KRA, OpenRaster and PNG — with layers, folders, masks and blend modes. Export to PSD, KRA, ORA, CLIP, PNG and SVG.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 15l2 2 4-4"/></svg>Files</div>
+        <div class="body"><h3>Opens your files</h3><p>Clip Studio <code>.clip</code>, Photoshop PSD, Krita KRA, OpenRaster and PNG — with layers, folders, masks and blend modes. Export to PSD (RGB or CMYK), KRA, ORA, CLIP, PNG and SVG.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
-        <h3>Reference board</h3>
-        <p>A PureRef-style board beside your canvas: drop images and whole documents, arrange, scale and draw notes over them.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>References</div>
+        <div class="body"><h3>Reference board</h3><p>A PureRef-style board beside your canvas: drop images, videos and whole documents, arrange, scale and draw notes over them.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M7 7V4h10v3"/><path d="M7 13h10"/></svg></div>
-        <h3>Scan your pencils</h3>
-        <p>Import from Wi-Fi scanners (AirScan), USB scanners on Windows or the iPad camera, then crop, straighten and clean up line art into layers.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M7 7V4h10v3"/><path d="M7 13h10"/></svg>Scanning</div>
+        <div class="body"><h3>Scan your pencils</h3><p>Import from Wi-Fi scanners (AirScan), USB scanners on Windows or the iPad camera, then crop, straighten and clean up line art into layers.</p></div>
       </div>
-      <div class="feature reveal">
-        <div class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
-        <h3>Pen-first on tablets</h3>
-        <p>WinTab and Windows Ink pressure and tilt; on iPad the Pencil draws while fingers pan, zoom, rotate and undo. Workspaces, themes and panels are all yours to arrange.</p>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="3"/><path d="M11 18h2"/></svg>Tablets</div>
+        <div class="body"><h3>Pen-first on tablets</h3><p>WinTab and Windows Ink pressure and tilt; on iPad the Pencil draws while fingers pan, zoom, rotate and undo, with a brush preview while it hovers. Workspaces, themes and panels are yours to arrange.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="screenshots">
+<section id="screenshots" class="alt">
   <div class="wrap">
     <div class="section-head reveal">
       <div class="kicker">Screenshots</div>
@@ -326,19 +368,61 @@
     </div>
     <div class="gallery">
       <div class="shot reveal">
-        <div class="frame" data-zoom><img src="assets/screenshot-painting.png" alt="Painting a layered landscape in Painter" loading="lazy" width="1936" height="1018"></div>
+        <div class="window" data-zoom><img src="assets/shot-session.png" alt="A shared session: the host sees the guest's balloons arrive, with the people list and the chat" loading="lazy" width="1920" height="1009"></div>
         <div>
-          <h3>Layers, folders and blend modes</h3>
-          <p>Every layer with its blend mode and opacity at a glance, folders you can fold, and the colour wheel always close.</p>
-          <p>Hide the bars you don't need, float any panel in its own window, and switch between workspaces for painting, inking, 3D layout and comics.</p>
+          <span class="tag">New · Shared sessions</span>
+          <h3>Two artists, one page</h3>
+          <p>The host shares the open document from File → Shared Session; a friend joins and adds the lettering while you paint. Their balloons, layers and strokes arrive as they make them.</p>
+          <p>Works between Windows, Mac, Linux, iPad and Android on the same network, or over the internet with the port forwarded or a VPN such as Tailscale.</p>
         </div>
       </div>
       <div class="shot reveal">
-        <div class="frame" data-zoom><img src="assets/screenshot-3d.png" alt="A textured 3D model on a 3D layer in Painter" loading="lazy" width="1936" height="1018"></div>
+        <div class="window" data-zoom><img src="assets/shot-text.png" alt="Text and balloons over a sunset: a speech balloon with a tail, a shout and vertical Japanese text, with the text editor open" loading="lazy" width="1920" height="1009"></div>
         <div>
+          <span class="tag">New · Text &amp; balloons</span>
+          <h3>Lettering that stays editable</h3>
+          <p>Click to write, or drag a balloon and type in it. Change the font, size, spacing, outline or balloon shape at any time; drag the tail's tip to aim it.</p>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <div class="window" data-zoom><img src="assets/shot-cmyk.png" alt="Converting to CMYK with Coated FOGRA39 through Little CMS; the colour panel shows the CMYK values" loading="lazy" width="1920" height="1009"></div>
+        <div>
+          <span class="tag">New · CMYK</span>
+          <h3>See it as it will print</h3>
+          <p>Convert with the press profile your printer asks for. Painter finds the profiles already on your computer (Adobe's, Windows', macOS'), or load any <code>.icc</code>.</p>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <div class="window" data-zoom><img src="assets/shot-halftone.png" alt="The sunset turned into a black-and-white halftone screen in Bitmap mode" loading="lazy" width="1920" height="1009"></div>
+        <div>
+          <span class="tag">New · Colour modes</span>
+          <h3>Halftone in one step</h3>
+          <p>Bitmap mode turns a picture into pure black and white — a 50% threshold, a diffusion dither, or a halftone screen with the cell size and angle you choose, ready for manga printing.</p>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <div class="window" data-zoom><img src="assets/shot-channels.png" alt="The red channel alone in grey, with the Channels tab beside Layers and History" loading="lazy" width="1920" height="1009"></div>
+        <div>
+          <span class="tag">New · Channels</span>
+          <h3>One channel at a time</h3>
+          <p>Show red, green or blue alone, paint only in them, or load one as a selection. Panels stack as tabs — Layers, Channels, History — to leave the canvas more room.</p>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <div class="window" data-zoom><img src="assets/shot-tools.png" alt="The lasso button's flyout with the magnetic lasso, beside compact one-row brush settings" loading="lazy" width="1920" height="1009"></div>
+        <div>
+          <span class="tag">New · Compact interface</span>
+          <h3>Fewer buttons, same tools</h3>
+          <p>Tool families share one button, as in Photoshop: hold it or right-click for the others. Brush settings fit on one screen, one row per setting.</p>
+        </div>
+      </div>
+      <div class="shot reveal">
+        <div class="window" data-zoom><img src="assets/screenshot-3d.png" alt="A textured 3D model on a 3D layer in Painter" loading="lazy" width="1936" height="1018"></div>
+        <div>
+          <span class="tag">3D layers</span>
           <h3>3D layers you can paint</h3>
-          <p>Models sit on their own layer, lit and depth-tested on the GPU. Orbit with the middle button like in Blender, then pose the camera for your panel.</p>
-          <p>Give an object a texture and paint it with any brush, on the model or on its UV map with a live preview.</p>
+          <p>Models sit on their own layer, lit and depth-tested on the GPU. Orbit with the middle button like in Blender, pose rigged characters, then frame the camera for your panel.</p>
+          <p>Give an object a texture and paint it with any brush, on the model or on its UV map.</p>
         </div>
       </div>
     </div>
@@ -350,7 +434,7 @@
     <div class="section-head reveal">
       <div class="kicker">Download</div>
       <h2>Painter for every desk and tablet</h2>
-      <p>Version <span id="version">0.1</span> — free, no account, no telemetry.</p>
+      <p>Version <span id="version">0.7</span> — free, no account, no telemetry. Installed copies update themselves.</p>
     </div>
     <div class="downloads">
       <a class="dl reveal" data-os="windows" href="https://github.com/cr0ma-gh/painter/releases/latest/download/Painter-windows-x86_64.exe">
@@ -393,7 +477,7 @@
   </div>
 </section>
 
-<section id="ipad">
+<section id="ipad" class="alt">
   <div class="wrap">
     <div class="section-head reveal">
       <div class="kicker">iPad</div>
@@ -421,9 +505,9 @@
         <div class="callout">
           <h3>Painting on iPad</h3>
           <ul>
-            <li>The Apple Pencil draws; one or two fingers pan, pinch zooms and rotates.</li>
+            <li>The Apple Pencil draws, with a brush preview while it hovers; one or two fingers pan, pinch zooms and rotates.</li>
             <li>Two-finger tap undoes, three-finger tap redoes, four-finger tap hides the panels.</li>
-            <li>On-screen <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Alt</kbd> keys work with every shortcut and tool.</li>
+            <li>On-screen <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Alt</kbd> keys work with every shortcut and tool; the clock and battery chip shows the time Painter's full screen hides.</li>
             <li>Files open from the Files app, iCloud Drive or other apps; Painter keeps its own folder under <em>On My iPad</em>.</li>
           </ul>
         </div>
@@ -434,7 +518,7 @@
 
 <footer>
   <div class="wrap">
-    <div><b style="color:var(--text)">Painter</b> — made with Rust, wgpu and egui. MIT or Apache-2.0.</div>
+    <div><b style="color:var(--text)">Painter</b> — made with Rust, wgpu, egui and Little CMS. MIT or Apache-2.0.</div>
     <div><a href="https://github.com/cr0ma-gh/painter">GitHub</a> · <a href="https://github.com/cr0ma-gh/painter/releases">Releases</a> · <a href="https://github.com/cr0ma-gh/painter/issues">Report a bug</a></div>
   </div>
 </footer>
@@ -476,7 +560,7 @@
 
   // Screenshots open full size.
   const box = document.getElementById("lightbox");
-  document.querySelectorAll("[data-zoom] img, .window img").forEach(img => {
+  document.querySelectorAll("[data-zoom] img, .showcase img").forEach(img => {
     img.style.cursor = "zoom-in";
     img.addEventListener("click", () => { box.querySelector("img").src = img.src; box.classList.add("open"); });
   });
