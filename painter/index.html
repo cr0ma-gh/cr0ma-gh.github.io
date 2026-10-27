@@ -236,7 +236,7 @@
 
 <header class="hero" id="top">
   <div class="wrap">
-    <a class="eyebrow" href="#new"><b>New</b> Shared sessions · Text &amp; balloons · CMYK with Little CMS →</a>
+    <a class="eyebrow" href="#new"><b>Version 1.0 Milestone</b> SIMD Performance · Legacy PC Support · Rolling Preview →</a>
     <h1>Paint, ink and lay out <em>comics</em>.</h1>
     <p class="lead">Painter is a free painting app for illustration and comics, inspired by Clip Studio Paint and Photoshop. Bring your brushes, draw with a pen or the Apple Pencil, letter your pages, draw together with friends, and send CMYK files to print — on every platform you own.</p>
     <div class="cta">
@@ -259,13 +259,37 @@
 <section id="new" class="alt">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="kicker">What's new</div>
-      <h2>Draw together, letter, print</h2>
-      <p>The latest releases bring Photoshop's and Clip Studio's tools you asked for, and a few nobody else has for free.</p>
+      <div class="kicker">Release 1.0 Milestone</div>
+      <h2>Supercharged performance, legacy support &amp; rolling preview</h2>
+      <p>Painter 1.0 brings massive multiplatform speedups, low-spec PC optimization, enhanced brush integration, crash diagnostics, and our continuous Rolling Preview channel.</p>
     </div>
     <div class="grid">
       <div class="card big reveal">
-        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M13 20c.3-2.4 2-4 4-4s3.6 1.6 4 4"/></svg>Shared sessions<span class="badge">New</span></div>
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>2.5× Faster SIMD &amp; Parallel Canvas<span class="badge">1.0</span></div>
+        <div class="body"><h3>Instant 4K/8K flattening &amp; responsive dabs</h3><p>Integer SIMD vectorization (AVX2/NEON) and a dedicated multi-threaded worker pool make CPU canvas compositing up to 2.5× faster. Precomputed squared-distance dab rejection speeds up rasterization by 20–40% for silky-smooth painting even on dense textured brushes.</p></div>
+      </div>
+      <div class="card big reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Rolling Preview Channel<span class="badge">1.0</span></div>
+        <div class="body"><h3>Test experimental features early</h3><p>Want to try out cutting-edge capabilities before official releases? Painter now offers a continuous Rolling release channel. Switch effortlessly between Stable and Rolling Preview inside <em>Help → Check for Updates</em>, or grab daily builds straight from GitHub.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Legacy Hardware Profiles<span class="badge">1.0</span></div>
+        <div class="body"><h3>Smooth on budget &amp; older PCs</h3><p>Automatic detection for systems with low RAM (≤4 GB), integrated graphics, and downlevel texture limits. Choose between High Quality, Balanced, and Legacy profiles to paint without slowdowns.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><path d="M14 4l6 6L9 21H3v-6z"/><path d="M12 6l6 6"/></svg>Enhanced Brush Engine<span class="badge">1.0</span></div>
+        <div class="body"><h3>Cleaner UIX &amp; full cross-compatibility</h3><p>Streamlined brush settings with visual badges for spray, flat tips, and dual-tip textures. Flawless import and export of Clip Studio (<code>.sut</code>), Photoshop (<code>.abr</code>), Krita, MyPaint, and GIMP brushes.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Crash Diagnostics<span class="badge">1.0</span></div>
+        <div class="body"><h3>One-click GitHub issue reporting</h3><p>In the rare event of an unexpected panic, an automatic crash reporter safely captures diagnostic details and lets you open a pre-filled GitHub bug report in one click.</p></div>
+      </div>
+      <div class="card reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>Layer Content Previews<span class="badge">1.0</span></div>
+        <div class="body"><h3>Accurate artwork thumbnails</h3><p>Layer thumbnails now intelligently zoom in on the tight bounding box of your actual strokes instead of shrinking the entire empty canvas, making it easy to identify layers at a glance.</p></div>
+      </div>
+      <div class="card big reveal">
+        <div class="bar"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M13 20c.3-2.4 2-4 4-4s3.6 1.6 4 4"/></svg>Shared sessions</div>
         <div class="body"><h3>Draw together, like Drawpile — in the app</h3><p>Host the open document and friends join with your address, on any platform. Strokes merge so two people painting in one spot both keep their paint; layers, texts and filters follow along. See everyone's pointer with their name, chat, and undo only your own work.</p></div>
       </div>
       <div class="card reveal">
@@ -434,14 +458,14 @@
     <div class="section-head reveal">
       <div class="kicker">Download</div>
       <h2>Painter for every desk and tablet</h2>
-      <p>Version <span id="version">0.7</span> — free, no account, no telemetry. Installed copies update themselves.</p>
+      <p>Version <span id="version">1.0</span> — free, no account, no telemetry. Installed copies update themselves.</p>
     </div>
     <div class="downloads">
       <a class="dl reveal" data-os="windows" href="https://github.com/cr0ma-gh/painter/releases/latest/download/Painter-windows-x86_64.exe">
         <svg viewBox="0 0 24 24"><path d="M3 5.5 10.5 4.4v7.1H3zM11.5 4.3 21 3v8.5h-9.5zM3 12.5h7.5v7.1L3 18.5zM11.5 12.5H21V21l-9.5-1.3z"/></svg>
         <h3>Windows</h3>
         <div class="file">Painter-windows-x86_64.exe</div>
-        <div class="note">Windows 10 or 11. Portable: just run it.</div>
+        <div class="note">Windows 10 or 11. Portable executable. Also available as <a href="https://github.com/cr0ma-gh/painter/releases/latest/download/Painter-Setup-windows-x86_64.exe" style="color:var(--orange);text-decoration:underline;">Installer Setup</a>.</div>
         <div class="go">Download →</div>
       </a>
       <a class="dl reveal" data-os="mac" href="https://github.com/cr0ma-gh/painter/releases/latest/download/Painter-macos.dmg">
@@ -472,6 +496,16 @@
         <div class="note">Installed by sideloading with a free Apple ID — see the guide below.</div>
         <div class="go">How to install ↓</div>
       </a>
+    </div>
+    <div class="callout reveal" style="margin-top: 28px;">
+      <h3 style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Rolling Preview Channel (Experimental)</span>
+        <span class="badge" style="margin: 0;">Rolling</span>
+      </h3>
+      <div style="padding: 16px 20px;">
+        <p style="margin: 0 0 12px; color: var(--dim);">Want to test in-development features and bug fixes before official releases? Painter provides a continuous Rolling release channel updated automatically from our main branch. You can switch update channels directly inside the app (<em>Help → Check for Updates</em>) or download preview binaries from GitHub:</p>
+        <p style="margin: 0;"><a class="btn" style="padding: 8px 16px; font-size: 14px;" href="https://github.com/cr0ma-gh/painter/releases/tags/rolling">Browse Rolling Preview Releases →</a></p>
+      </div>
     </div>
     <p class="dl-foot">Older versions and release notes are on the <a href="https://github.com/cr0ma-gh/painter/releases">releases page</a>. Builds aren't code-signed by a paid certificate yet, so your system may warn the first time.</p>
   </div>
